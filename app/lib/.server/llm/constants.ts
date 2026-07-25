@@ -16,7 +16,7 @@ export const PROVIDER_COMPLETION_LIMITS: Record<string, number> = {
   Google: 8192, // Gemini 1.5 Pro/Flash standard limit
   Cohere: 4000,
   DeepSeek: 8192,
-  Groq: 8192,
+  Groq: 2048, // Tier gratuit Groq: limite 12 000 TPM, garder la complétion petite
   HuggingFace: 4096,
   Mistral: 8192,
   Ollama: 8192,

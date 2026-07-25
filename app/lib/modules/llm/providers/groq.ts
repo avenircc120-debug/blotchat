@@ -21,17 +21,17 @@ export default class GroqProvider extends BaseProvider {
       name: 'llama-3.1-8b-instant',
       label: 'Llama 3.1 8B',
       provider: 'Groq',
-      maxTokenAllowed: 128000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 8000,
+      maxCompletionTokens: 2048,
     },
 
-    // Llama 3.3 70B: 128k context, most capable model
+    // Llama 3.3 70B: limité à 12 000 TPM sur le tier gratuit Groq
     {
       name: 'llama-3.3-70b-versatile',
       label: 'Llama 3.3 70B',
       provider: 'Groq',
-      maxTokenAllowed: 128000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 8000,
+      maxCompletionTokens: 2048,
     },
   ];
 
