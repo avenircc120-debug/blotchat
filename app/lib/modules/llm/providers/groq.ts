@@ -2,7 +2,7 @@ import { BaseProvider } from '~/lib/modules/llm/base-provider';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import type { IProviderSetting } from '~/types/model';
 import type { LanguageModelV1 } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGroq } from '@ai-sdk/groq';
 
 export default class GroqProvider extends BaseProvider {
   name = 'Groq';
@@ -88,12 +88,8 @@ export default class GroqProvider extends BaseProvider {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
 
-    const openai = createOpenAI({
-      baseURL: 'https://api.groq.com/openai/v1',
-      apiKey,
-      compatibility: 'compatible',
-    });
+    const groq = createGroq({ apiKey });
 
-    return openai(model);
+    return groq(model);
   }
 }
