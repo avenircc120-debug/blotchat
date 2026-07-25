@@ -96,6 +96,7 @@ export default class GroqProvider extends BaseProvider {
     const openai = createOpenAI({
       baseURL: 'https://api.groq.com/openai/v1',
       apiKey,
+      compatibility: 'compatible',
     });
 
     return openai(model);
