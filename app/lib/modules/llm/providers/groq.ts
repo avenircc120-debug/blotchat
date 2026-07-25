@@ -48,16 +48,23 @@ export default class GroqProvider extends BaseProvider {
 
     const res = (await response.json()) as any;
 
+    // Tier gratuit Groq : garder uniquement llama-3.1-8b-instant (20 000 TPM)
+    // Les autres modèles (70B, etc.) ont des limites TPM trop basses (12 000)
+    const ALLOWED_MODELS = ['llama-3.1-8b-instant'];
+
     const data = res.data.filter(
-      (model: any) => model.object === 'model' && model.active && model.context_window > 8000,
+      (model: any) =>
+        model.object === 'model' &&
+        model.active &&
+        ALLOWED_MODELS.includes(model.id),
     );
 
     return data.map((m: any) => ({
       name: m.id,
       label: `${m.id} - context ${m.context_window ? Math.floor(m.context_window / 1000) + 'k' : 'N/A'} [ by ${m.owned_by}]`,
       provider: this.name,
-      maxTokenAllowed: Math.min(m.context_window || 8192, 16384),
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 8000,
+      maxCompletionTokens: 2048,
     }));
   }
 
