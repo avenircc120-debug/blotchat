@@ -105,6 +105,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId = processedMessages.length - 3;
         }
 
+        // Détecter le provider depuis le dernier message utilisateur
+        const lastUserMsg = processedMessages.filter((m) => m.role === 'user').slice(-1)[0];
+        const currentProvider = lastUserMsg
+          ? extractPropertiesFromMessage(lastUserMsg).provider
+          : 'unknown';
+        const isGroq = currentProvider === 'Groq';
+
         if (filePaths.length > 0 && contextOptimization) {
           logger.debug('Generating Chat Summary');
           dataStream.writeData({
@@ -209,8 +216,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const options: StreamingOptions = {
           supabaseConnection: supabase,
-          toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
+          // Groq ne supporte pas bien les tool calls — désactiver pour éviter l'erreur
+          // "Failed to process successful response"
+          ...(isGroq
+            ? { toolChoice: 'none' as const, tools: {} }
+            : { toolChoice: 'auto' as const, tools: mcpService.toolsWithoutExecute }),
           maxSteps: maxLLMSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
