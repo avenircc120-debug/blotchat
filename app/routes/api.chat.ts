@@ -376,12 +376,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           return 'Custom error: Invalid or missing API key. Please check your API key configuration.';
         }
 
-        if (errorMessage.includes('token') && errorMessage.includes('limit')) {
-          return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
+        // Groq TPM (tokens per minute) rate limit — doit être vérifié AVANT le context limit
+        if (
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('429') ||
+          errorMessage.includes('TPM') ||
+          errorMessage.includes('per minute') ||
+          errorMessage.includes('par minute') ||
+          (errorMessage.includes('token') && errorMessage.includes('limit') && errorMessage.includes('minute'))
+        ) {
+          return 'Custom error: Limite de débit Groq atteinte (tokens par minute). Attendez quelques secondes et réessayez, ou choisissez llama-3.1-8b-instant dans les paramètres (limite plus haute).';
         }
 
-        if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-          return 'Custom error: API rate limit exceeded. Please wait a moment before trying again.';
+        if (errorMessage.includes('token') && errorMessage.includes('limit')) {
+          return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
         }
 
         if (errorMessage.includes('network') || errorMessage.includes('timeout')) {

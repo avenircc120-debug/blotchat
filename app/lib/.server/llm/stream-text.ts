@@ -162,6 +162,17 @@ export async function streamText(props: {
       },
     }) ?? getSystemPrompt();
 
+  // Groq tier gratuit : prompt système trop long → tronquer à ~10 000 chars (~2 500 tokens)
+  // pour rester sous la limite TPM (12 000 tokens/min pour 70B, 20 000 pour 8B)
+  if (modelDetails?.provider === 'Groq') {
+    const GROQ_MAX_SYSTEM_CHARS = 10000;
+
+    if (systemPrompt.length > GROQ_MAX_SYSTEM_CHARS) {
+      systemPrompt = systemPrompt.slice(0, GROQ_MAX_SYSTEM_CHARS) + '\n\n[Prompt tronqué pour respecter les limites Groq]';
+      logger.warn(`System prompt tronqué à ${GROQ_MAX_SYSTEM_CHARS} chars pour Groq`);
+    }
+  }
+
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
 
