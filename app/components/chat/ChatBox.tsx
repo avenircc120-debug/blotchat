@@ -20,7 +20,6 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
 import { WebSearch } from './WebSearch.client';
-import Popover from '~/components/ui/Popover';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;
@@ -67,6 +66,25 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
+  const toolsMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isToolsMenuOpen) {
+      return;
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
+        setIsToolsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isToolsMenuOpen]);
+
   return (
     <div
       className={classNames(
@@ -263,65 +281,75 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </ClientOnly>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
           <div className="flex gap-1 items-center">
-            <Popover
-              side="top"
-              align="start"
-              trigger={
-                <IconButton title="More tools" className="transition-all">
-                  <div className="i-ph:plus text-xl"></div>
-                </IconButton>
-              }
-            >
-              <div className="flex flex-col gap-1 min-w-[200px]">
-                <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
-                <McpTools />
-                <IconButton
-                  title="Upload file"
-                  className="transition-all !justify-start w-full"
-                  onClick={() => props.handleFileUpload()}
-                >
-                  <div className="i-ph:paperclip text-xl"></div>
-                  <span className="ml-2 text-sm">Joindre un fichier</span>
-                </IconButton>
-                <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
-                <IconButton
-                  title="Enhance prompt"
-                  disabled={props.input.length === 0 || props.enhancingPrompt}
-                  className={classNames(
-                    'transition-all !justify-start w-full',
-                    props.enhancingPrompt ? 'opacity-100' : '',
-                  )}
-                  onClick={() => {
-                    props.enhancePrompt?.();
-                    toast.success('Prompt enhanced!');
-                  }}
-                >
-                  {props.enhancingPrompt ? (
-                    <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                  ) : (
-                    <div className="i-bolt:stars text-xl"></div>
-                  )}
-                  <span className="ml-2 text-sm">Améliorer le prompt</span>
-                </IconButton>
-                {props.chatStarted && (
+            <div ref={toolsMenuRef} className="relative">
+              <IconButton
+                title="More tools"
+                className="transition-all"
+                onClick={() => setIsToolsMenuOpen((open) => !open)}
+              >
+                <div className="i-ph:plus text-xl"></div>
+              </IconButton>
+
+              {isToolsMenuOpen && (
+                <div className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 min-w-[200px] bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded-md shadow-xl p-2 z-workbench">
+                  <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
+                  <McpTools />
                   <IconButton
-                    title="Discuss"
-                    className={classNames(
-                      'transition-all flex items-center gap-1 !justify-start w-full px-1.5',
-                      props.chatMode === 'discuss'
-                        ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent'
-                        : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
-                    )}
+                    title="Upload file"
+                    className="transition-all !justify-start w-full"
                     onClick={() => {
-                      props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
+                      props.handleFileUpload();
+                      setIsToolsMenuOpen(false);
                     }}
                   >
-                    <div className={`i-ph:chats text-xl`} />
-                    <span>Discuss</span>
+                    <div className="i-ph:paperclip text-xl"></div>
+                    <span className="ml-2 text-sm">Joindre un fichier</span>
                   </IconButton>
-                )}
-              </div>
-            </Popover>
+                  <WebSearch
+                    onSearchResult={(result) => props.onWebSearchResult?.(result)}
+                    disabled={props.isStreaming}
+                  />
+                  <IconButton
+                    title="Enhance prompt"
+                    disabled={props.input.length === 0 || props.enhancingPrompt}
+                    className={classNames(
+                      'transition-all !justify-start w-full',
+                      props.enhancingPrompt ? 'opacity-100' : '',
+                    )}
+                    onClick={() => {
+                      props.enhancePrompt?.();
+                      toast.success('Prompt enhanced!');
+                      setIsToolsMenuOpen(false);
+                    }}
+                  >
+                    {props.enhancingPrompt ? (
+                      <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                    ) : (
+                      <div className="i-bolt:stars text-xl"></div>
+                    )}
+                    <span className="ml-2 text-sm">Améliorer le prompt</span>
+                  </IconButton>
+                  {props.chatStarted && (
+                    <IconButton
+                      title="Discuss"
+                      className={classNames(
+                        'transition-all flex items-center gap-1 !justify-start w-full px-1.5',
+                        props.chatMode === 'discuss'
+                          ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent'
+                          : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
+                      )}
+                      onClick={() => {
+                        props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
+                        setIsToolsMenuOpen(false);
+                      }}
+                    >
+                      <div className={`i-ph:chats text-xl`} />
+                      <span>Discuss</span>
+                    </IconButton>
+                  )}
+                </div>
+              )}
+            </div>
 
             <SpeechRecognitionButton
               isListening={props.isListening}
