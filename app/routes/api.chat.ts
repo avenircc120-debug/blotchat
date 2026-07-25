@@ -216,12 +216,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const options: StreamingOptions = {
           supabaseConnection: supabase,
-          // Groq ne supporte pas bien les tool calls — désactiver pour éviter l'erreur
-          // "Failed to process successful response"
-          ...(isGroq
-            ? { toolChoice: 'none' as const, tools: {} }
-            : { toolChoice: 'auto' as const, tools: mcpService.toolsWithoutExecute }),
-          maxSteps: maxLLMSteps,
+          // Groq : ne PAS envoyer tools ni toolChoice (cause "Failed to process successful response")
+          // maxSteps forcé à 1 pour éviter les boucles multi-étapes incompatibles avec Groq
+          ...(!isGroq && {
+            toolChoice: 'auto' as const,
+            tools: mcpService.toolsWithoutExecute,
+          }),
+          maxSteps: isGroq ? 1 : maxLLMSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
