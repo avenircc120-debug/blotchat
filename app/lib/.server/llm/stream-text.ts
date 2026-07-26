@@ -248,24 +248,18 @@ export async function streamText(props: {
   // Use maxCompletionTokens for reasoning models (o1, GPT-5), maxTokens for traditional models
   const tokenParams = isReasoning ? { maxCompletionTokens: safeMaxTokens } : { maxTokens: safeMaxTokens };
 
-  // Filter out unsupported parameters for reasoning models
-  const filteredOptions =
-    isReasoning && options
-      ? Object.fromEntries(
-          Object.entries(options).filter(
-            ([key]) =>
-              ![
-                'temperature',
-                'topP',
-                'presencePenalty',
-                'frequencyPenalty',
-                'logprobs',
-                'topLogprobs',
-                'logitBias',
-              ].includes(key),
-          ),
-        )
-      : options || {};
+  // Paramètres internes à exclure systématiquement de _streamText
+  const INTERNAL_PARAMS = ['supabaseConnection'];
+  // Paramètres supplémentaires à exclure pour les modèles reasoning (o1, GPT-5)
+  const REASONING_EXCLUDED = ['temperature', 'topP', 'presencePenalty', 'frequencyPenalty', 'logprobs', 'topLogprobs', 'logitBias'];
+
+  const filteredOptions = options
+    ? Object.fromEntries(
+        Object.entries(options).filter(
+          ([key]) => !INTERNAL_PARAMS.includes(key) && !(isReasoning && REASONING_EXCLUDED.includes(key)),
+        ),
+      )
+    : {};
 
   // DEBUG: Log filtered options
   logger.info(

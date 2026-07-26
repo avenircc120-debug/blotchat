@@ -293,18 +293,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               messageSliceId,
             });
 
+            // Utiliser UNIQUEMENT mergeIntoDataStream — pas de fullStream en parallèle
             result.mergeIntoDataStream(dataStream);
-
-            (async () => {
-              for await (const part of result.fullStream) {
-                if (part.type === 'error') {
-                  const error: any = part.error;
-                  logger.error(`${error}`);
-
-                  return;
-                }
-              }
-            })();
 
             return;
           },
@@ -334,28 +324,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId,
         });
 
-        (async () => {
-          for await (const part of result.fullStream) {
-            streamRecovery.updateActivity();
-
-            if (part.type === 'error') {
-              const error: any = part.error;
-              logger.error('Streaming error:', error);
-              streamRecovery.stop();
-
-              // Enhanced error handling for common streaming issues
-              if (error.message?.includes('Invalid JSON response')) {
-                logger.error('Invalid JSON response detected - likely malformed API response');
-              } else if (error.message?.includes('token')) {
-                logger.error('Token-related error detected - possible token limit exceeded');
-              }
-
-              return;
-            }
-          }
-          streamRecovery.stop();
-        })();
+        // Utiliser UNIQUEMENT mergeIntoDataStream — ne PAS lire result.fullStream en parallèle
+        // (double consommation du même stream → corruption → "Failed to process successful response")
         result.mergeIntoDataStream(dataStream);
+        streamRecovery.stop();
       },
       onError: (error: any) => {
         // Provide more specific error messages for common issues
@@ -440,10 +412,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     return new Response(dataStream, {
       status: 200,
       headers: {
-        'Content-Type': 'text/event-stream; charset=utf-8',
+        // Le protocole AI data stream (@ai-sdk/react) attend text/plain, pas text/event-stream
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
         Connection: 'keep-alive',
-        'Cache-Control': 'no-cache',
-        'Text-Encoding': 'chunked',
+        'Cache-Control': 'no-cache, no-transform',
       },
     });
   } catch (error: any) {
